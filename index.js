@@ -11,3 +11,17 @@ bot.on("messageUpdate", (old_msg, msg) => messageCreateAndUpdateMethod(msg));
 bot.on('interactionCreate', interaction => {
 	if(interaction.isButton) reactToButton(interaction);
 });
+
+function messageCreateAndUpdateMethod(msg)
+{
+    if(msg.author.isBot) return;
+    if(msg.content[0] != prefix) return;
+	let arguments = msg.content.split(' ');
+	arguments[0] = arguments[0].slice(1);
+	let command = arguments.shift();
+	switch(command)
+	{
+		case "start": startGame(msg, arguments); break;
+		default: msg.reply("Wrong command!"); break;
+	}
+}
