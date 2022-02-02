@@ -184,11 +184,43 @@ function reactToButton(button)
         turn = player1;
     }
     let result = 'draw';
-    let firstSign = grid[0][0];
-    for(let i = 1; i < 3; i++)
+    
+    for(let d = 0; d < 3; d++)
     {
-        if(grid[0][i] === '-') result = 'none';
-        if(grid[0][i] !== firstSign) break;
-        if(i == 2) result = firstSign;
+        if(result === 'x' || result === 'o') break;
+        let firstSign = grid[d][0];
+        for(let i = 1; i < 3; i++)
+        {
+            if(grid[d][i] === '-') result = 'none';
+            if(grid[d][i] !== firstSign) break;
+            if(i == 2) result = firstSign;
+        }
+    }
+    for(let d = 0; d < 3; d++)
+    {
+        if(result === 'x' || result === 'o') break;
+        let firstSign = grid[0][d];
+        for(let i = 1; i < 3; i++)
+        {
+            if(grid[i][d] === '-') result = 'none';
+            if(grid[i][d] !== firstSign) break;
+            if(i == 2) result = firstSign;
+        }
+    }
+    for(let d = 0; d < 3; d++)
+    {
+        if(result === 'x' || result === 'o') break;
+        let firstSign = grid[0][0];
+        if(grid[d][d] === '-') result = 'none';
+        if(grid[d][d] !== firstSign) break;
+        if(d == 2) result = firstSign;
+    }
+    for(let d = 0; d < 3; d++)
+    {
+        if(result === 'x' || result === 'o') break;
+        let firstSign = grid[0][0];
+        if(grid[d][2-d] === '-') result = 'none';
+        if(grid[d][2-d] !== firstSign) break;
+        if(d == 2) result = firstSign;
     }
 }
