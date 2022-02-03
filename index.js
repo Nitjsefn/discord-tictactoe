@@ -53,14 +53,14 @@ async function startGame(msg, args)
                 rows.push(row);
         }
         let stopButton = new MessageButton()
-             .setCustomId('stop')
+            .setCustomId('stop')
 		    .setLabel('STOP GAME')
 		    .setStyle('DANGER')
 		    .setDisabled(false);
         rows.push(new MessageActionRow().addComponents(stopButton));
         let player1 = playersIDs[0];
         let player2 = playersIDs[1];
-        let sentMsg = await msg.channel.send({content: `\`Game between\` **\`${player1}\`** \`and\` **\`${player2}\`**`, components: rows });
+        let sentMsg = await msg.channel.send({content: `\`Game between\` **\`${player1}\`** \`and\` **\`${player2}\`**\n**\`${player1}\`**'s turn.`, components: rows });
         let grid = new Array(6);
         for(let i = 0; i < 3; i++)
         {
@@ -69,8 +69,10 @@ async function startGame(msg, args)
         grid[3] = sentMsg.id
         grid[4] = setTimeout(() =>
         {
+            tttGridInChannel.delete('' + msg.guildId + msg.channel.id);
+            registeredPlayers.delete('' + msg.guildId + msg.channel.id);
             return;
-        }, 600);
+        }, 600000);
         grid[5] = player1;
         tttGridInChannel.set('' + msg.guildId + msg.channel.id, grid);
     }
@@ -107,11 +109,11 @@ function reactToButton(button)
         button.deferUpdate();
         return;
     }
-	let rows = Array.from(msg.components);
+	//let rows = Array.from(msg.components);
     let grid = Array.from(tttGridInChannel.get('' + msg.guildId + msg.channel.id));
     let turn = grid.pop();
-    let timeoutId = grid.pop();
-    let activeMsgId = grid.pop();
+    let timeoutId = grid[grid.length-1];
+    let activeMsgId = grid[grid.length-2];
     let players = Array.from(registeredPlayers.get('' + msg.guildId + msg.channel.id));
     let player1 = players[0]; // x
     let player2 = players[1]; // o
@@ -170,7 +172,7 @@ function reactToButton(button)
 		clearTimeout(timeoutId);
         return;
 	}
-    if(turn !== button.user.tag) return;
+    if(turn !== button.user.tag) { button.deferUpdate(); return; }
     let rowIndex = parseInt(button.customId[0]);
     let colIndex = parseInt(button.customId[1]);
     if(turn === player1)
@@ -184,43 +186,148 @@ function reactToButton(button)
         turn = player1;
     }
     let result = 'draw';
-    
+    let winButtons = new Array();
     for(let d = 0; d < 3; d++)
     {
         if(result === 'x' || result === 'o') break;
-        let firstSign = grid[d][0];
-        for(let i = 1; i < 3; i++)
+        let firstSign = grid[rowIndex][colIndex];
+        for(let i = 0; i < 3; i++)
         {
             if(grid[d][i] === '-') result = 'none';
             if(grid[d][i] !== firstSign) break;
-            if(i == 2) result = firstSign;
+            if(i == 2) 
+            {
+                result = firstSign;
+                winButtons = [''+d+0, ''+d+1, ''+d+2];
+            }
         }
     }
     for(let d = 0; d < 3; d++)
     {
         if(result === 'x' || result === 'o') break;
-        let firstSign = grid[0][d];
-        for(let i = 1; i < 3; i++)
+        let firstSign = [rowIndex][colIndex];
+        for(let i = 0; i < 3; i++)
         {
             if(grid[i][d] === '-') result = 'none';
             if(grid[i][d] !== firstSign) break;
-            if(i == 2) result = firstSign;
+            if(i == 2) 
+            {
+                result = firstSign;
+                winButtons = [''+0+i, ''+1+i, ''+2+i];
+            }
         }
     }
     for(let d = 0; d < 3; d++)
     {
         if(result === 'x' || result === 'o') break;
-        let firstSign = grid[0][0];
+        let firstSign = grid[rowIndex][colIndex];
         if(grid[d][d] === '-') result = 'none';
         if(grid[d][d] !== firstSign) break;
-        if(d == 2) result = firstSign;
+        if(d == 2) 
+        {
+            result = firstSign;
+            winButtons = ['00', '11', '22'];
+        }
     }
     for(let d = 0; d < 3; d++)
     {
         if(result === 'x' || result === 'o') break;
-        let firstSign = grid[0][0];
+        let firstSign = grid[rowIndex][colIndex];
         if(grid[d][2-d] === '-') result = 'none';
         if(grid[d][2-d] !== firstSign) break;
-        if(d == 2) result = firstSign;
+        if(d == 2) 
+        {
+            result = firstSign;
+            winButtons = ['02', '11', '20'];
+        }
+    }
+    log(grid[0]);
+    log(grid[1]);
+    log(grid[2]);
+    log(result);
+    log("11111111111111111111111111111111111111111111111111111111111111111111111111111111");
+    if(result == 'none')
+    {
+        let rows = new Array();
+        for(let i = 0; i < 3; i++)
+        {
+            let row = msg.components[i];
+            let buttons = new Array();
+            for(let d = 0; d < 3; d++)
+            {
+                buttons.push(row.components[d]);
+                if(buttons[d].customId === button.customId)
+                {
+                    buttons[d].setLabel(grid[rowIndex][colIndex]);
+                    buttons[d].setDisabled(true);
+                }
+            }
+            row.setComponents(buttons[0], buttons[1], buttons[2]);
+            rows.push(row);
+        }
+        rows.push(msg.components[3]);
+        msg.edit({ content: `\`Game between\` **\`${player1}\`** \`and\` **\`${player2}\`**\n**\`${turn}\`**'s turn.`, components: rows });
+        button.deferUpdate();
+        grid.push(turn);
+        tttGridInChannel.set('' + msg.guildId + msg.channel.id, grid);
+        return;
+    }
+    if(result == 'draw')
+    {
+        let rows = new Array();
+        for(let i = 0; i < 3; i++)
+        {
+            let row = msg.components[i];
+            let buttons = new Array();
+            for(let d = 0; d < 3; d++)
+            {
+                buttons.push(row.components[d]);
+                if(i == rowIndex && d == colIndex)
+                    buttons[d].setLabel(grid[rowIndex][colIndex]);
+                buttons[d].setDisabled(true);
+            }
+            row.setComponents(buttons[0], buttons[1], buttons[2]);
+            rows.push(row);
+        }
+        msg.edit({ components: rows });
+        msg.reply("**Draw**. Nobody wins. Good luck next time.");
+        button.deferUpdate();
+        clearTimeout(timeoutId);
+        grid.push(turn);
+        tttGridInChannel.delete('' + msg.guildId + msg.channel.id);
+        registeredPlayers.delete('' + msg.guildId + msg.channel.id);
+        return;
+    }
+    if(result == 'x' || result == 'o')
+    {
+        let rows = new Array();
+        for(let i = 0; i < 3; i++)
+        {
+            let row = msg.components[i];
+            let buttons = new Array();
+            for(let d = 0; d < 3; d++)
+            {
+                buttons.push(row.components[d]);
+                if(i == rowIndex && d == colIndex)
+                    buttons[d].setLabel(grid[rowIndex][colIndex]);
+                for(let y = 0; y < 3; y++)
+                {
+                    if(parseInt(winButtons[y][0]) == i && parseInt(winButtons[y][1]) == d)
+                        buttons[d].setStyle('SUCCESS');
+                }
+                buttons[d].setDisabled(true);
+
+            }
+            row.setComponents(buttons[0], buttons[1], buttons[2]);
+            rows.push(row);
+        }
+        msg.edit({ components: rows });
+        button.deferUpdate();
+        clearTimeout(timeoutId);
+        grid.push(turn);
+        tttGridInChannel.delete('' + msg.guildId + msg.channel.id);
+        registeredPlayers.delete('' + msg.guildId + msg.channel.id);
+        msg.reply(`**\`${button.user.tag}\` won**`);
+        return;
     }
 }
